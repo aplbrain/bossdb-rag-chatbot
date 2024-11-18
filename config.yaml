@@ -1,0 +1,75 @@
+# LLM (Language Model) API Parameters
+llm_config:
+  # Main language model for generating detailed responses
+  default_llm: "anthropic.claude-3-5-sonnet-20240620-v1:0"
+  
+  # Faster, lighter model used for conversation summarization
+  fast_llm: "anthropic.claude-3-haiku-20240307-v1:0"
+  
+  # Model used for generating embeddings of text chunks
+  embed_model: "cohere.embed-english-v3"
+  
+  # AWS Bedrock configuration
+  # Note: Values starting with OS_ENV_ will be loaded from environment variables
+  # AWS region where Bedrock service is located
+  aws_region: "OS_ENV_AWS_REGION"
+  
+  # AWS credentials for accessing Bedrock API
+  aws_access_key_id: "OS_ENV_AWS_ACCESS_KEY_ID"
+  aws_secret_access_key: "OS_ENV_AWS_SECRET_ACCESS_KEY"
+  
+  # GitHub personal access token for repository access
+  # Required for accessing private repos and avoiding rate limits
+  github_token: "OS_ENV_GITHUB_TOKEN"
+
+# Usage Limits
+# These limits help prevent abuse and ensure system stability
+limits:
+  # Maximum number of questions a user can ask in a single browser session
+  max_questions: 1000
+  
+  # Maximum number of words a user can submit across all questions
+  max_words: 100000
+  
+  # Maximum tokens allowed in a single message (input)
+  # 4096 tokens is approximately 3000-4000 words
+  max_message_tokens: 4096
+  
+  # Maximum tokens maintained in conversation history
+  # This affects context window and memory usage (summarization is used to handle longer histories)
+  max_total_tokens: 8192
+
+# Data Sources Configuration
+# These sources form the knowledge base for the RAG system
+sources:
+  # List of URLs to scrape for building the knowledge base
+  urls:
+    # BossDB Documentation
+    - "https://metadata.bossdb.org/DataModel"     # Core data model documentation
+    - "https://metadata.bossdb.org/SampleCode"    # Example code and usage
+    
+    # GitHub Repository Documentation
+    - "https://github.com/aplbrain/grand-cypher/blob/master/README.md"  # Graph analysis tools
+    
+    # Academic Papers and Publications
+    - "https://www.frontiersin.org/articles/10.3389/fninf.2022.828787/full"  # BossDB platform paper
+    - "https://www.biorxiv.org/content/10.1101/2020.05.15.098707v1.full"     # Technical implementation
+    - "https://www.biorxiv.org/content/10.1101/2022.06.01.494307v1.full"     # Use cases
+    
+    # Tool Documentation
+    - "https://github.com/jhuapl-boss/intern/wiki"                  # Intern client wiki
+    - "https://github.com/jhuapl-boss/intern/tree/master/docs"      # Detailed documentation
+    - "https://github.com/jhuapl-boss/intern/tree/master/examples"  # Usage examples
+    - "https://github.com/aplbrain/bossdb_cookbook"                 # Cookbook recipes
+    
+    # API Documentation
+    - "https://api.metadata.bossdb.org/openapi.json"         # Metadata API spec
+    - "https://api.motifstudio.bossdb.org/openapi.json"     # MotifStudio API spec
+    - "https://docs.theboss.io/reference/cutout-get"        # Core API documentation
+    - "https://api.metadata.bossdb.org/api/v1/collections"  # Collections endpoint
+  
+  # GitHub Organizations to pull readmes from
+  # These orgs contain repositories with relevant BossDB tools and documentation
+  github_orgs:
+    - "jhuapl-boss"
+    - "aplbrain"
