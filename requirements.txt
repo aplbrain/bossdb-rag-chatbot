@@ -11,7 +11,7 @@ llama-index-readers-file
 llama-index-readers-web
 llama-index-readers-json
 nbformat
-tree-sitter==0.21.0
+tree-sitter==0.21.3
 tree_sitter_languages
 sqlalchemy
 tiktoken
