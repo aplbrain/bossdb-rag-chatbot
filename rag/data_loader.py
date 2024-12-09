@@ -400,6 +400,7 @@ class DataLoader:
             List[Document]: Processed documents from webpage content
         """
         try:
+            # Currently does not support live pages, aka JS created like most of the BossDB website
             reader = SimpleWebPageReader(html_to_text=True)
             documents = await reader.aload_data([url])
 

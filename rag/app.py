@@ -1,5 +1,7 @@
 import logging
 from datetime import datetime
+from typing import List
+
 from llama_index.llms.bedrock import Bedrock
 from llama_index.embeddings.bedrock import BedrockEmbedding
 from llama_index.core import Settings
@@ -36,26 +38,54 @@ class BossDBRAGApplication:
         max_total_tokens (int): Maximum total tokens allowed in a conversation. Defaults to 8192.
         max_message_tokens (int): Maximum tokens allowed in a single message. Defaults to 4096.
         temperature (float): Temperature setting for language model output. Defaults to 0.1.
+        force_reload (bool): If True, forces a complete rebuild of the index regardless of existing data.
+            Defaults to False.
+        incremental (bool): If True, only processes new or modified documents when updating the index.
+            Defaults to True.
         index_builder (IndexBuilder): Component for building and managing the vector index.
         index: The vector index used for document retrieval.
     """
 
     def __init__(
         self,
-        urls,
-        orgs,
-        llm,
-        fast_llm,
-        embed_model,
-        aws_access_key_id,
-        aws_secret_access_key,
-        aws_region,
-        github_token,
-        max_total_tokens=8192,
-        max_message_tokens=4096,
-        temperature=0.1,
+        urls: List[str],
+        orgs: List[str],
+        llm: str,
+        fast_llm: str,
+        embed_model: str,
+        aws_access_key_id: str,
+        aws_secret_access_key: str,
+        aws_region: str,
+        github_token: str,
+        max_total_tokens: int = 8192,
+        max_message_tokens: int = 4096,
+        temperature: float = 0.1,
+        force_reload: bool = False,
+        incremental: bool = True,
     ):
-        """Initialize the BossDB RAG application with default configurations."""
+        """Initialize the BossDB RAG application with configurations.
+
+        Args:
+            urls: List of URLs to scrape for building the knowledge base.
+            orgs: List of GitHub organizations to include in the knowledge base.
+            llm: Model identifier for the main language model.
+            fast_llm: Model identifier for the faster, summarization language model.
+            embed_model: Model identifier for the embedding model.
+            aws_access_key_id: AWS access key for Bedrock API access.
+            aws_secret_access_key: AWS secret key for Bedrock API access.
+            aws_region: AWS region for Bedrock service.
+            github_token: GitHub access token for repository access.
+            max_total_tokens: Maximum total tokens allowed in a conversation.
+                Defaults to 8192.
+            max_message_tokens: Maximum tokens allowed in a single message.
+                Defaults to 4096.
+            temperature: Temperature setting for language model output.
+                Defaults to 0.1.
+            force_reload: If True, forces a complete rebuild of the index.
+                Defaults to False.
+            incremental: If True, only processes new or modified documents.
+                Defaults to True.
+        """
         self.urls = urls
         self.orgs = orgs
         self.llm = llm
@@ -66,6 +96,8 @@ class BossDBRAGApplication:
         self.aws_region = aws_region
         self.github_token = github_token
         self.temperature = temperature
+        self.force_reload = force_reload
+        self.incremental = incremental
 
         Settings.llm = Bedrock(
             model=self.llm,
@@ -101,7 +133,11 @@ class BossDBRAGApplication:
 
             setup_start_time = datetime.now()
             self.index = await self.index_builder.build_or_load_index(
-                self.urls, self.orgs, github_token=self.github_token
+                self.urls,
+                self.orgs,
+                github_token=self.github_token,
+                force_reload=self.force_reload,
+                incremental=self.incremental,
             )
             setup_end_time = datetime.now()
 
