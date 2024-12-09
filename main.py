@@ -27,6 +27,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_CONFIG = {
+    "sources": {"urls": [], "github_orgs": []},
+    "llm_config": {
+        "default_llm": "anthropic.claude-3-sonnet-20240620-v1:0",
+        "fast_llm": "anthropic.claude-3-haiku-20240307-v1:0",
+        "embed_model": "cohere.embed-english-v3",
+        "aws_region": "us-east-1",
+        "aws_access_key_id": None,  # Must be provided via env var
+        "aws_secret_access_key": None,  # Must be provided via env var
+        "github_token": None,  # Optional
+    },
+    "limits": {
+        "max_questions": 1000,
+        "max_words": 100000,
+        "max_total_tokens": 8192,
+        "max_message_tokens": 4096,
+    },
+    "index_settings": {
+        "force_reload": False,  # Whether to force rebuild the index
+        "incremental": False,  # Whether to use incremental updates
+    },
+}
+
+
 def load_config() -> Dict[str, Any]:
     """Load configuration from YAML file and process environment variables.
 
@@ -136,20 +160,44 @@ async def initialize_application() -> None:
 
         logger.info("Initializing BossDBRAGApplication...")
         app = BossDBRAGApplication(
-            urls=config["sources"]["urls"],
-            orgs=config["sources"]["github_orgs"],
-            llm=config["llm_config"]["default_llm"],
-            fast_llm=config["llm_config"]["fast_llm"],
-            embed_model=config["llm_config"]["embed_model"],
+            urls=config["sources"].get("urls", DEFAULT_CONFIG["sources"]["urls"]),
+            orgs=config["sources"].get(
+                "github_orgs", DEFAULT_CONFIG["sources"]["github_orgs"]
+            ),
+            llm=config["llm_config"].get(
+                "default_llm", DEFAULT_CONFIG["llm_config"]["default_llm"]
+            ),
+            fast_llm=config["llm_config"].get(
+                "fast_llm", DEFAULT_CONFIG["llm_config"]["fast_llm"]
+            ),
+            embed_model=config["llm_config"].get(
+                "embed_model", DEFAULT_CONFIG["llm_config"]["embed_model"]
+            ),
             aws_access_key_id=config["llm_config"]["aws_access_key_id"],
             aws_secret_access_key=config["llm_config"]["aws_secret_access_key"],
-            aws_region=config["llm_config"]["aws_region"],
-            github_token=config["llm_config"]["github_token"],
-            max_total_tokens=config["limits"]["max_total_tokens"],
-            max_message_tokens=config["limits"]["max_message_tokens"],
+            aws_region=config["llm_config"].get(
+                "aws_region", DEFAULT_CONFIG["llm_config"]["aws_region"]
+            ),
+            github_token=config["llm_config"].get("github_token"),
+            max_total_tokens=config["limits"].get(
+                "max_total_tokens", DEFAULT_CONFIG["limits"]["max_total_tokens"]
+            ),
+            max_message_tokens=config["limits"].get(
+                "max_message_tokens", DEFAULT_CONFIG["limits"]["max_message_tokens"]
+            ),
+            force_reload=config.get("index_settings", {}).get(
+                "force_reload", DEFAULT_CONFIG["index_settings"]["force_reload"]
+            ),
+            incremental=config.get("index_settings", {}).get(
+                "incremental", DEFAULT_CONFIG["index_settings"]["incremental"]
+            ),
         )
-        max_questions = config["limits"]["max_questions"]
-        max_words = config["limits"]["max_words"]
+        max_questions = config["limits"].get(
+            "max_questions", DEFAULT_CONFIG["limits"]["max_questions"]
+        )
+        max_words = config["limits"].get(
+            "max_words", DEFAULT_CONFIG["limits"]["max_words"]
+        )
 
         await app.setup()
         logger.info("BossDBRAGApplication initialized successfully.")

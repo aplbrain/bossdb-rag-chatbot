@@ -1,8 +1,9 @@
 import os
+import shutil
 import json
 import logging
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any, Set
 from llama_index.core import (
     VectorStoreIndex,
@@ -203,6 +204,7 @@ class IndexBuilder:
             )
             ```
         """
+        incremental = False if force_reload else incremental
         try:
             self.metadata["processed_urls"] = set(self.metadata["processed_urls"])
             self.metadata["processed_orgs"] = set(self.metadata["processed_orgs"])
@@ -210,8 +212,6 @@ class IndexBuilder:
             if force_reload:
                 logger.info("Force reload requested. Building new index...")
                 if os.path.exists(STORAGE_DIR):
-                    import shutil
-
                     shutil.rmtree(STORAGE_DIR)
                 self.metadata = {
                     "last_update": None,
@@ -220,30 +220,27 @@ class IndexBuilder:
                     "processed_orgs": set(),
                 }
 
-            new_urls = (
+            new_urls = list(
                 set(urls) - self.metadata["processed_urls"]
                 if incremental
                 else set(urls)
             )
-            new_orgs = (
+            new_orgs = list(
                 set(orgs) - self.metadata["processed_orgs"]
                 if incremental
                 else set(orgs)
             )
 
-            if (
-                os.path.exists(STORAGE_DIR)
-                and not force_reload
-                and not (new_urls or new_orgs)
-            ):
+            if os.path.exists(STORAGE_DIR):
                 logger.info("Loading existing index from storage...")
                 storage_context = StorageContext.from_defaults(persist_dir=STORAGE_DIR)
                 self.index = load_index_from_storage(storage_context)
-                return self.index
+                if not (new_urls or new_orgs):
+                    return self.index
 
             new_documents = await self._process_new_documents(
-                list(new_urls) if incremental else urls,
-                list(new_orgs) if incremental else orgs,
+                new_urls,
+                new_orgs,
                 github_token,
                 force_reload,
             )
@@ -251,19 +248,30 @@ class IndexBuilder:
             if new_documents:
                 if self.index and incremental and not force_reload:
                     logger.info("Updating existing index with new documents...")
-                    self.index.refresh(new_documents)
+                    self.index.insert_nodes(new_documents)
                 else:
                     logger.info("Building new index...")
-                    self.index = VectorStoreIndex.from_documents(
-                        new_documents, show_progress=True
-                    )
-
-                os.makedirs(STORAGE_DIR, exist_ok=True)
-                self.index.storage_context.persist(persist_dir=STORAGE_DIR)
-                self.metadata["last_update"] = datetime.utcnow().isoformat()
+                    self.index = VectorStoreIndex(new_documents, show_progress=True)
+                    os.makedirs(STORAGE_DIR, exist_ok=True)
+                    self.index.storage_context.persist(persist_dir=STORAGE_DIR)
+                self.metadata["last_update"] = datetime.now(timezone.utc).isoformat()
                 self._save_metadata()
             else:
                 logger.info("No new documents to process")
+                try:
+                    storage_context = StorageContext.from_defaults(
+                        persist_dir=STORAGE_DIR
+                    )
+                    self.index = load_index_from_storage(storage_context)
+                except FileNotFoundError:
+                    logger.info("Building new index...")
+                    self.index = VectorStoreIndex([], show_progress=True)
+                    os.makedirs(STORAGE_DIR, exist_ok=True)
+                    self.index.storage_context.persist(persist_dir=STORAGE_DIR)
+                    self.metadata["last_update"] = datetime.now(
+                        timezone.utc
+                    ).isoformat()
+                    self._save_metadata()
 
             return self.index
 
