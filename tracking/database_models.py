@@ -1,55 +1,162 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.sql import func
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from motor.motor_asyncio import AsyncIOMotorClient
+from bson import ObjectId
+from typing import Optional, List, Dict, Any
+import datetime
+import logging
+from datetime import datetime, timezone
 
-Base = declarative_base()
-
-DATABASE_URL = "sqlite+aiosqlite:///./bossdb_rag.db"
-
-engine = create_async_engine(DATABASE_URL, echo=True)
-AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_identifier = Column(String, unique=True, index=True)
-    question_count = Column(Integer, default=0)
-    word_count = Column(Integer, default=0)
-    last_activity = Column(DateTime(timezone=True), server_default=func.now())
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    chat_threads = relationship("ChatThread", back_populates="user")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+logger = logging.getLogger(__name__)
 
 
-class ChatThread(Base):
-    __tablename__ = "chat_threads"
+class DatabaseManager:
+    """
+    Singleton database manager to handle MongoDB connections and operations.
+    """
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    start_time = Column(DateTime(timezone=True), server_default=func.now())
-    end_time = Column(DateTime(timezone=True), nullable=True)
+    _instance = None
 
-    user = relationship("User", back_populates="chat_threads")
-    messages = relationship("Message", back_populates="chat_thread")
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(DatabaseManager, cls).__new__(cls)
+            cls._instance.initialized = False
+        return cls._instance
+
+    async def initialize(
+        self, uri: str = "mongodb://localhost:27017", db_name: str = "bossdb_rag"
+    ):
+        """Initialize MongoDB connection."""
+        if not self.initialized:
+            try:
+                self.client = AsyncIOMotorClient(uri)
+                self.db = self.client[db_name]
+                # Create indexes
+                await self.db.users.create_index("user_identifier", unique=True)
+                await self.db.chat_threads.create_index("user_id")
+                await self.db.messages.create_index("chat_thread_id")
+                self.initialized = True
+                logger.info("MongoDB connection initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize MongoDB connection: {e}")
+                raise
+
+    async def close(self):
+        """Close MongoDB connection."""
+        if hasattr(self, "client"):
+            self.client.close()
+            self.initialized = False
 
 
-class Message(Base):
-    __tablename__ = "messages"
+class User:
+    """User model for MongoDB."""
 
-    id = Column(Integer, primary_key=True, index=True)
-    chat_thread_id = Column(Integer, ForeignKey("chat_threads.id"))
-    is_user = Column(Boolean, default=True)
-    content = Column(Text)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    @staticmethod
+    async def create_or_get(user_identifier: str) -> Dict[str, Any]:
+        """Create a new user or get existing one."""
+        db = DatabaseManager().db
+        user = await db.users.find_one({"user_identifier": user_identifier})
 
-    chat_thread = relationship("ChatThread", back_populates="messages")
+        if not user:
+            user = {
+                "user_identifier": user_identifier,
+                "question_count": 0,
+                "word_count": 0,
+                "created_at": datetime.now(timezone.utc),
+                "last_activity": datetime.now(timezone.utc),
+            }
+            result = await db.users.insert_one(user)
+            user["_id"] = result.inserted_id
+
+        return user
+
+    @staticmethod
+    async def update_activity(user_id: ObjectId, question_length: int) -> None:
+        """Update user activity metrics."""
+        db = DatabaseManager().db
+        await db.users.update_one(
+            {"_id": user_id},
+            {
+                "$inc": {"question_count": 1, "word_count": question_length},
+                "$set": {"last_activity": datetime.now(timezone.utc)},
+            },
+        )
+
+    @staticmethod
+    async def get_usage_stats(user_id: ObjectId) -> Dict[str, int]:
+        """Get user usage statistics."""
+        db = DatabaseManager().db
+        user = await db.users.find_one({"_id": user_id})
+        return {
+            "question_count": user.get("question_count", 0),
+            "word_count": user.get("word_count", 0),
+        }
 
 
-async def create_tables():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+class ChatThread:
+    """Chat thread model for MongoDB."""
+
+    @staticmethod
+    async def create(user_id: ObjectId) -> str:
+        """Create a new chat thread."""
+        db = DatabaseManager().db
+        thread = {
+            "user_id": user_id,
+            "start_time": datetime.now(timezone.utc),
+            "end_time": None,
+        }
+        result = await db.chat_threads.insert_one(thread)
+        return str(result.inserted_id)
+
+    @staticmethod
+    async def end(thread_id: str) -> None:
+        """Mark a chat thread as ended."""
+        db = DatabaseManager().db
+        await db.chat_threads.update_one(
+            {"_id": ObjectId(thread_id)},
+            {"$set": {"end_time": datetime.now(timezone.utc)}},
+        )
+
+    @staticmethod
+    async def get_messages(thread_id: str) -> List[Dict[str, Any]]:
+        """Get all messages in a thread."""
+        db = DatabaseManager().db
+        cursor = db.messages.find({"chat_thread_id": ObjectId(thread_id)}).sort(
+            "timestamp", 1
+        )
+        return await cursor.to_list(length=None)
+
+
+class Message:
+    """Message model for MongoDB."""
+
+    @staticmethod
+    async def create(thread_id: str, content: str, is_user: bool) -> str:
+        """Create a new message."""
+        db = DatabaseManager().db
+        message = {
+            "chat_thread_id": ObjectId(thread_id),
+            "content": content,
+            "is_user": is_user,
+            "timestamp": datetime.now(timezone.utc),
+        }
+        result = await db.messages.insert_one(message)
+        return str(result.inserted_id)
+
+
+# Initialize database connection
+async def initialize_database(
+    uri: str = "mongodb://localhost:27017", db_name: str = "bossdb_rag"
+):
+    """Initialize the database connection."""
+    db_manager = DatabaseManager()
+    await db_manager.initialize(uri, db_name)
+
+
+async def cleanup_database():
+    """Cleanup database connections."""
+    db_manager = DatabaseManager()
+    await db_manager.close()

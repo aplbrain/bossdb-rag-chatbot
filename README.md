@@ -134,14 +134,114 @@ This will start the web interface on `http://localhost:8000`.
 
 ## 💾 Data Storage
 
-The system uses SQLite for storing:
+The system uses MongoDB for storing:
 
-- User information
-- Chat threads
-- Message history
+- User information (profiles, usage metrics)
+- Chat threads (conversation sessions)
+- Message history (individual messages within threads)
 - Usage statistics
 
-Database schema is defined in `database_models.py`.
+### MongoDB Setup
+
+1. Start MongoDB (using Docker):
+```bash
+docker run -d \
+    --name mongodb \
+    -p 27017:27017 \
+    -e MONGO_INITDB_ROOT_USERNAME=admin \
+    -e MONGO_INITDB_ROOT_PASSWORD=password123 \
+    mongodb/mongodb-community-server:latest
+```
+
+2. The system will automatically:
+   - Create required collections
+   - Set up indexes for efficient querying
+   - Handle connection management
+
+### Collection Structure
+
+- **users**: Stores user profiles and usage statistics
+  ```json
+  {
+    "user_identifier": "ip_sessionid",
+    "question_count": 0,
+    "word_count": 0,
+    "created_at": "timestamp",
+    "last_activity": "timestamp"
+  }
+  ```
+
+- **chat_threads**: Tracks conversation sessions
+  ```json
+  {
+    "user_id": "ObjectId",
+    "start_time": "timestamp",
+    "end_time": "timestamp"
+  }
+  ```
+
+- **messages**: Stores individual messages
+  ```json
+  {
+    "chat_thread_id": "ObjectId",
+    "content": "message text",
+    "is_user": true/false,
+    "timestamp": "timestamp"
+  }
+  ```
+
+### Viewing Database Contents
+
+The included `view_database.py` script provides a way to inspect the MongoDB collections:
+
+1. **Usage**:
+   ```bash
+   python view_database.py
+   ```
+
+2. **Configuration**:
+   - Default connection: `mongodb://admin:password123@localhost:27017`
+   - Default database: `bossdb_rag`
+   - To modify, update the connection string in the script or use environment variables
+
+3. **Features**:
+   - Displays all collections in the database
+   - Shows the first 5 documents from each collection
+   - Formats complex data types for readability
+   - Displays total document count per collection
+   - Handles nested objects and timestamps
+
+4. **Example Output**:
+   ```
+   Database: bossdb_rag
+   
+   Collection: users (Total documents: 25)
+   +------------------+----------------+-------------+-------------------------+-------------------------+
+   | _id             | user_identifier | word_count  | created_at             | last_activity          |
+   +------------------+----------------+-------------+-------------------------+-------------------------+
+   | ...             | 127.0.0.1_abc  | 150         | 2024-03-15T10:30:00Z   | 2024-03-15T11:45:00Z   |
+   [Additional rows...]
+
+   Collection: chat_threads (Total documents: 30)
+   [Thread information...]
+
+   Collection: messages (Total documents: 145)
+   [Message information...]
+   ```
+
+### Storage Cleanup
+
+To reset the database and storage:
+
+1. Drop MongoDB collections:
+   ```bash
+   mongosh "mongodb://admin:password123@localhost:27017/bossdb_rag" --eval "db.dropDatabase()"
+   ```
+
+2. Remove vector store files:
+   ```bash
+   rm -rf ./storage/*
+   ```
 
 ## 🔄 RAG Pipeline
 
@@ -214,6 +314,31 @@ After updating the configuration:
 3. Start up the application
 4. The system will automatically process and index the new sources
 5. New content will be immediately available for queries
+
+
+#### Incremental Updates
+
+The system supports incremental updates to the knowledge base:
+
+1. **Document Processing**
+   - New documents are processed and added to the vector store
+   - Existing document hashes are compared to detect changes
+   - Only modified content is reprocessed
+
+2. **Storage Management**
+   - Vector store files in `./storage/` contain embeddings and index
+
+3. **Update Process**
+   ```python
+   # Example: Incremental update
+   app = BossDBRAGApplication(
+       urls=["https://docs.example.com"],
+       orgs=["example-org"],
+       incremental=True
+       force_reload=False,
+   )
+   await app.setup()
+   ```
 
 ### Customizing Document Processing
 
