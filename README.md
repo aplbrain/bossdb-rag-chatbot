@@ -38,7 +38,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 3. Install dependencies:
 
-   - May need to do the following on Ubuntu: `sudo apt-get install build-essential python3-dev`, `pip install wheel`, and `sudo apt-get install libsqlite3-dev`
+   - May need to do the following on Ubuntu: `sudo apt-get install build-essential python3-dev` and `pip install wheel`.
 
 ```bash
 pip install -r requirements.txt
@@ -113,12 +113,11 @@ Values prefixed with `OS_ENV_` in the config file are loaded from environment va
 
 ### Storage
 
-The system maintains its vector store and user history in:
+The system maintains its vector store in:
 
-- SQLite database (`bossdb_rag.db`)
 - Vector store files (`./storage/`)
 
-These are automatically created on first run.
+This is automatically created on first run.
 
 ## 🚀 Usage
 

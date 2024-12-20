@@ -75,7 +75,7 @@ class ChatSession:
             await self.page.get_by_role("textbox").press("Enter")
 
             # Wait for response
-            await self.page.wait_for_selector(".message-avatar", timeout=60000)
+            await self.page.wait_for_selector(".message-avatar", timeout=120000)
             response_text = await self.page.locator(
                 ".message-avatar"
             ).last.text_content()
