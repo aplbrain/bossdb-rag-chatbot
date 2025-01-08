@@ -350,9 +350,34 @@ def split(self, document: Document) -> List[Document]:
         return self.custom_splitter.get_nodes_from_documents([document])
 ```
 
+### Stress Testing
+
+The stress testing script (`stress_test.py`) can simulate multiple concurrent users interacting with the chatbot. The script uses Playwright for browser automation and provides detailed metrics about system performance.
+
+```bash
+python stress_test.py http://localhost:8000 --sessions 5 --questions "What is BossDB?" "How do I download data?"
+```
+
+Features:
+- Simulates multiple concurrent chat sessions
+- Measures response times, success rates, and throughput
+- Tracks concurrent session statistics
+- Generates detailed CSV reports with timing analysis
+- Provides comprehensive test results including:
+  - Total requests and success rate
+  - Maximum concurrent sessions
+  - Response time percentiles
+  - Requests per second
+  - Session-level timing analysis
+
+Results are saved to:
+- `stress_test_results_[timestamp].csv`: Detailed metrics for each request
+- `session_timings_[timestamp].csv`: Session-level timing analysis
+- `stress_test.log`: Detailed test execution log
+
 ## 📊 Monitoring
 
-The system includes comprehensive logging:
+This system includes comprehensive logging:
 
 - Application logs in console and `bossdb_rag.log`
 - Database viewer script `view_database.py`
@@ -364,6 +389,7 @@ The system includes comprehensive logging:
 - Protections against single user spamming
 - Multiple users are supported through Chainlit but is limited
 - Requires some level of local compute for calculating distances for vector search
+- Currently memory (RAM usage) can build up until memory allocations fail!
 
 ## 📄 License
 

@@ -172,9 +172,8 @@ def calculate_concurrent_sessions(df: pd.DataFrame) -> int:
     return max_concurrent
 
 
-async def main(ip_address: str, questions: List[str], num_sessions: int):
+async def main(base_url: str, questions: List[str], num_sessions: int):
     """Run the stress test with multiple concurrent sessions."""
-    base_url = f"http://{ip_address}"
     start_time = time.time()
 
     logger.info(f"Starting stress test with {num_sessions} concurrent sessions")
@@ -251,7 +250,7 @@ async def main(ip_address: str, questions: List[str], num_sessions: int):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run stress test for BossDB RAG")
-    parser.add_argument("ip_address", help="IP address of the server")
+    parser.add_argument("url", help="URL of the server")
     parser.add_argument(
         "--sessions", type=int, default=5, help="Number of concurrent sessions"
     )
@@ -269,4 +268,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    asyncio.run(main(args.ip_address, args.questions, args.sessions))
+    asyncio.run(main(args.url, args.questions, args.sessions))
