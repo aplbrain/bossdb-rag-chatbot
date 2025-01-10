@@ -36,3 +36,12 @@ Try starting with:
 ## ⚠️ Note
 
 While the chatbot strives for accuracy, always verify critical information against the official documentation. If you notice any inconsistencies, please report them on our GitHub repository.
+
+For privacy concerns, please see the related BossDB privacy policy.
+
+## 📧 Provide Feedback
+
+We welcome your feedback to improve the BossDB RAG Chatbot! You can:
+
+- Email us at [feedback@bossdb.org](mailto:feedback@bossdb.org)
+- Report technical issues on our [GitHub repository](https://github.com/aplbrain/bossdb-rag-chatbot/issues)

@@ -13,8 +13,9 @@ llama-index-readers-json
 nbformat
 tree-sitter==0.21.3
 tree_sitter_languages
-sqlalchemy
 tiktoken
 boto3
 botocore
-aiosqlite
+motor
+pymongo
+tabulate

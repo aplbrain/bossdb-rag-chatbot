@@ -6,6 +6,8 @@ from llama_index.core import VectorStoreIndex
 from llama_index.core.chat_engine import ContextChatEngine
 from llama_index.core.memory import ChatSummaryMemoryBuffer, ChatMemoryBuffer
 from llama_index.core.llms import LLM
+from chainlit import make_async
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -95,7 +97,10 @@ class QueryProcessor:
                     },
                 }
 
-            response = await self.chat_engine.achat(user_query)
+            # Llamaindex for Bedrock does not support a true version of achat
+            # response = await self.chat_engine.achat(user_query)
+            achat = make_async(self.chat_engine.chat)
+            response = await achat(user_query)
             source_nodes = response.source_nodes
             sources = []
 
