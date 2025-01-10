@@ -389,7 +389,6 @@ This system includes comprehensive logging:
 - Protections against single user spamming
 - Multiple users are supported through Chainlit but is limited
 - Requires some level of local compute for calculating distances for vector search
-- Currently memory (RAM usage) can build up until memory allocations fail!
 
 ## 📄 License
 
