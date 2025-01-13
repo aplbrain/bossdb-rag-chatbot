@@ -105,7 +105,7 @@ class IndexBuilder:
         urls: List[str],
         orgs: List[str],
         github_token: Optional[str],
-        force_reload: bool = False,
+        check_hash: bool = False,
     ) -> List[Document]:
         """Process documents that haven't been indexed yet or need updating.
 
@@ -113,7 +113,7 @@ class IndexBuilder:
             urls (List[str]): List of URLs to process
             orgs (List[str]): List of GitHub organizations to process
             github_token (Optional[str]): GitHub access token
-            force_reload (bool): Whether to force reprocessing of all documents
+            check_hash (bool): Whether to check hash before adding as new document
 
         Returns:
             List[Document]: List of processed documents that need to be added/updated
@@ -131,7 +131,7 @@ class IndexBuilder:
             url = doc.metadata.get("url", "")
             org = doc.metadata.get("organization", "")
 
-            if force_reload or (
+            if not check_hash or (
                 doc_hash != self.metadata["document_hashes"].get(url, "")
             ):
                 processed_docs = self.splitter.split(doc)
@@ -242,7 +242,7 @@ class IndexBuilder:
                 new_urls,
                 new_orgs,
                 github_token,
-                force_reload,
+                check_hash=False,
             )
 
             if new_documents:

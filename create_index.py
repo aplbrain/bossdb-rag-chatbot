@@ -1,3 +1,5 @@
+# SCRIPT is still a WORK-IN-PROGRESS and may not fully work yet
+
 import asyncio
 import logging
 import os

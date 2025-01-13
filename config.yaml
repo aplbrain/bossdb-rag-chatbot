@@ -69,11 +69,12 @@ sources:
   # These orgs contain repositories with relevant BossDB tools and documentation
   github_orgs:
     - "jhuapl-boss"
-    - "aplbrain"
 
 index_settings:
-  force_reload: false  # Set to true to force rebuild (of only docs in config)
-  # Set to false to process all documents, only gets new vector embedding if doc changed.
-  # If true will not process existing documents, even if out of date as it will not even download them again.
+  # Set to true to force reprocess all docs for the vector DB
+  force_reload: false
+
+  # Set to false to process all documents.
+  # If true will not process existing documents, even if out of date as it will not download them again to check.
   # Does not remove docs if no longer in config, use force_reload to get a clean start.
   incremental: false
