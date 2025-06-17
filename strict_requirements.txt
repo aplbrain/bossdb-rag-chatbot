@@ -122,7 +122,7 @@ pysqlite3==0.5.4
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-engineio==4.11.0
-python-multipart==0.0.9
+python-multipart==0.0.18
 python-socketio==5.11.4
 pytz==2024.2
 PyYAML==6.0.2
