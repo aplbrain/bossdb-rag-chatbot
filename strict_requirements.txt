@@ -108,7 +108,7 @@ pillow==11.0.0
 platformdirs==4.3.6
 playwright==1.49.0
 propcache==0.2.0
-protobuf==5.28.3
+protobuf==5.29.5
 pyasn1==0.6.1
 pyasn1_modules==0.4.1
 pydantic==2.9.2
