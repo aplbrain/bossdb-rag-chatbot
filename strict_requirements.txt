@@ -59,7 +59,7 @@ langsmith==0.1.146
 Lazify==0.4.0
 literalai==0.0.623
 llama-cloud==0.1.5
-llama-index==0.12.1
+llama-index==0.12.28
 llama-index-agent-openai==0.4.0
 llama-index-cli==0.4.1
 llama-index-core==0.12.1
